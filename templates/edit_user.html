@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit User</title>
+</head>
+<body>
+    <h1>Edit User</h1>
+    <form method="POST" action="{{ url_for('edit_user', user_id=user[0]) }}">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" value="{{ user[1] }}" required><br>
+
+        <label for="role_id">Role:</label>
+        <select id="role_id" name="role_id">
+            {% for role in roles %}
+            <option value="{{ role[0] }}" {% if role[0] == user[2] %}selected{% endif %}>{{ role[1] }}</option>
+            {% endfor %}
+        </select><br>
+
+        <label for="department_id">Department:</label>
+        <select id="department_id" name="department_id">
+            {% for department in departments %}
+            <option value="{{ department[0] }}" {% if department[0] == user[3] %}selected{% endif %}>{{ department[1] }}</option>
+            {% endfor %}
+        </select><br>
+
+        <button type="submit">Update User</button>
+    </form>
+</body>
+</html>
