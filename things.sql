@@ -4,8 +4,8 @@ CREATE TABLE Roles (
 );
 
 CREATE TABLE Department (
-    dno SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
+    dnumber SERIAL PRIMARY KEY,
+    dname VARCHAR(50) UNIQUE NOT NULL
 );
 
 
@@ -18,10 +18,10 @@ CREATE TABLE Users (
 );
 
 CREATE TABLE Employee (
-    emp_id SERIAL PRIMARY KEY,                -- Employee ID
+    id SERIAL PRIMARY KEY,                -- Employee ID
     name VARCHAR(50) NOT NULL,                -- Employee name                      
     salary DECIMAL(10, 2),                  
-    dno INT REFERENCES Department(dno) ON DELETE SET NULL, -- Department relationship
+    dno INT REFERENCES Department(dnumber) ON DELETE SET NULL, -- Department relationship
     user_id INT REFERENCES Users(id) ON DELETE SET NULL    -- Login credentials, nullable
 );
 

@@ -6,14 +6,14 @@ from functools import wraps
 
 # Initialize Flask App
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Replace with a secure secret key
+app.secret_key = 'your_secret_key' 
 
 # Database Configuration
 DATABASE_CONFIG = {
     "dbname": "postgres",
     "user": "postgres",
     "password": "Error#four0four!",  
-    "port": "5432"
+    "port": "5400"
 }
 
 # Initialize Flask-Login
@@ -141,22 +141,51 @@ def logout():
     return redirect(url_for('home'))
 
 
+# TODO: role 2 means that departments can edit people from department   
 @app.route('/users')
 @login_required
-@role_required(1)  # Assuming role_id 1 corresponds to 
+@role_required(1, 2)  # Restrict to Super Admin and Department Admin roles
 def view_users():
-    """View all users (Admin only)."""
+    """View users with role-based access control."""
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id, username, role_id, department_id FROM users")
+
+    # Retrieve logged-in user's role and department
+    logged_in_user_role = current_user.role_id
+    logged_in_user_department = current_user.department_id
+
+    if logged_in_user_role == 1:  # Super Admin
+        # Fetch all users
+        query = """
+            SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+            FROM Users u
+            LEFT JOIN Roles r ON u.role_id = r.id
+            LEFT JOIN Department d ON u.department_id = d.dnumber
+        """
+        cur.execute(query)
+    elif logged_in_user_role == 2:  # Department Admin
+        # Fetch users from the same department
+        query = """
+            SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+            FROM Users u
+            LEFT JOIN Roles r ON u.role_id = r.id
+            LEFT JOIN Department d ON u.department_id = d.dnumber
+            WHERE u.department_id = %s
+        """
+        cur.execute(query, (logged_in_user_department,))
+    else:
+        return "Access Denied", 403  # For other roles
+
+    # Fetch and close connection
     users = cur.fetchall()
     cur.close()
     conn.close()
+
     return render_template('users.html', users=users)
 
-@app.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
-@role_required(1)  # Assuming only admins can edit users
+@role_required(1,2)  # Assuming only admins can edit users
 def edit_user(user_id):
     """Edit user details."""
     conn = get_db_connection()
@@ -196,14 +225,12 @@ def edit_user(user_id):
     cur = conn.cursor()
     cur.execute("SELECT id, role_name FROM roles")
     roles = cur.fetchall()
-    cur.execute("SELECT dno, name FROM department")
+    cur.execute("SELECT dnumber, name FROM department")
     departments = cur.fetchall()
     cur.close()
     conn.close()
 
     return render_template('edit_user.html', user=user, roles=roles, departments=departments)
-
-
 
 
 
@@ -236,7 +263,7 @@ def register_user():
     cur = conn.cursor()
     cur.execute("SELECT id, role_name FROM roles")
     roles = cur.fetchall()
-    cur.execute("SELECT dno, name FROM department")
+    cur.execute("SELECT dnumber, name FROM department")
     departments = cur.fetchall()
     cur.close()
     conn.close()
