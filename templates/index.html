@@ -12,7 +12,12 @@
     <p>Welcome, {{ current_user.username }}</p>
     <button onclick="window.location.href='/logout'">Logout</button>
 
-    {% if current_user.role_id == 1 or current_user.role_id == 2 %}
+    {% if current_user.role_id == 1 %}
+    <!-- Super Admin only -->
+    <button onclick="window.location.href='/create_department'">
+      Create Department
+    </button>
+    {% endif %} {% if current_user.role_id == 1 or current_user.role_id == 2 %}
     <button onclick="window.location.href='/users'">Manage Users</button>
     {% endif %} {% else %}
     <button onclick="window.location.href='/login'">Login</button>

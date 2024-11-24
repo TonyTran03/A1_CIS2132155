@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create a New User</title>
+  </head>
+  <body>
+    <h1>Create a New User</h1>
+
+    <form method="POST" action="{{ url_for('add_user') }}">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required /><br />
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required /><br />
+
+      <label for="role">Role:</label>
+      <select id="role" name="role" required>
+        {% for role in roles %}
+        <option value="{{ role[0] }}">{{ role[1] }}</option>
+        {% endfor %}</select
+      ><br />
+
+      {% if current_user.role_id == 1 %}
+      <!-- Super Admin can select any department -->
+      <label for="department_id">Department:</label>
+      <select id="department_id" name="department_id" required>
+        {% for department in departments %}
+        <option value="{{ department[0] }}">{{ department[1] }}</option>
+        {% endfor %}</select
+      ><br />
+      {% else %}
+      <!-- Department Admin's department is auto-assigned -->
+      <input
+        type="hidden"
+        name="department_id"
+        value="{{ current_user.department_id }}"
+      />
+      <p>
+        Department: {{ departments | selectattr('0', 'equalto',
+        current_user.department_id) | map(attribute='1') | first }}
+      </p>
+      {% endif %}
+
+      <button type="submit">Create User</button>
+    </form>
+    <p><a href="{{ url_for('view_users') }}">Back to User Management</a></p>
+  </body>
+</html>

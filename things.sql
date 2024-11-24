@@ -14,15 +14,15 @@ CREATE TABLE Users (
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role_id INT REFERENCES Roles(id) ON DELETE SET NULL,
-    department_id INT REFERENCES Department(dno) ON DELETE SET NULL -- Nullable for users
+    department_id INT REFERENCES Department(dnumber) ON DELETE SET NULL 
 );
 
 CREATE TABLE Employee (
-    id SERIAL PRIMARY KEY,                -- Employee ID
-    name VARCHAR(50) NOT NULL,                -- Employee name                      
+    id SERIAL PRIMARY KEY,              
+    name VARCHAR(50) NOT NULL,                                   
     salary DECIMAL(10, 2),                  
-    dno INT REFERENCES Department(dnumber) ON DELETE SET NULL, -- Department relationship
-    user_id INT REFERENCES Users(id) ON DELETE SET NULL    -- Login credentials, nullable
+    dno INT REFERENCES Department(dnumber) ON DELETE SET NULL, 
+    user_id INT REFERENCES Users(id) ON DELETE SET NULL   
 );
 
 

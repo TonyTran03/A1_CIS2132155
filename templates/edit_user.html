@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit User</title>
+    <script>
+        function toggleDepartmentDropdown() {
+            const roleSelect = document.getElementById("role_id");
+            const departmentSection = document.getElementById("department-section");
+            if (roleSelect.value == 1) { // 1 corresponds to Super Admin
+                departmentSection.style.display = "none"; // Hide the department dropdown
+            } else {
+                departmentSection.style.display = "block"; // Show the department dropdown
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            toggleDepartmentDropdown(); // Initialize on page load
+            document.getElementById("role_id").addEventListener("change", toggleDepartmentDropdown); // Update on role change
+        });
+    </script>
 </head>
 <body>
     <h1>Edit User</h1>
@@ -18,12 +34,15 @@
             {% endfor %}
         </select><br>
 
-        <label for="department_id">Department:</label>
-        <select id="department_id" name="department_id">
-            {% for department in departments %}
-            <option value="{{ department[0] }}" {% if department[0] == user[3] %}selected{% endif %}>{{ department[1] }}</option>
-            {% endfor %}
-        </select><br>
+        <!-- Department Section -->
+        <div id="department-section">
+            <label for="department_id">Department:</label>
+            <select id="department_id" name="department_id">
+                {% for department in departments %}
+                <option value="{{ department[0] }}" {% if department[0] == user[3] %}selected{% endif %}>{{ department[1] }}</option>
+                {% endfor %}
+            </select><br>
+        </div>
 
         <button type="submit">Update User</button>
     </form>

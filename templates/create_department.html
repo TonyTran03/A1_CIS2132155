@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Department</title>
+  </head>
+  <body>
+    <a href="{{ url_for('home') }}" style="text-decoration: none">
+      <button type="button">Back to Home</button>
+    </a>
+    <h1>Create a New Department</h1>
+    <form method="POST" action="/create_department">
+      <label for="name">Department Name:</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        placeholder="Enter department name"
+        required
+      /><br />
+
+      <button type="submit">Create Department</button>
+    </form>
+    <button onclick="window.location.href='/'">Back to Home</button>
+  </body>
+</html>
