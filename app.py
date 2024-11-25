@@ -97,6 +97,8 @@ def login():
 
     return render_template('login.html')
 
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
 
@@ -118,11 +120,6 @@ def signup():
         if not role_id:
             conn.close()
             return "Invalid role selected", 400
-
-        # Validate department assignment for Department Admins
-        if current_user.role_id == 2 and department_id != str(current_user.department_id):
-            flash("You can only assign users to your own department.", "danger")
-            return redirect(url_for('signup'))
 
         # Insert the new user into the database
         try:

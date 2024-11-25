@@ -22,10 +22,10 @@
       ><br />
 
       <label for="department">Department:</label>
-      <select id="department" name="department" required>
-        <option value="Super Admin">Super Admin</option>
-        <option value="Department Admin">Department Admin</option>
-        <option value="Normal User">Normal User</option></select
+      <select id="department" name="department">
+        {%for department in departments%}
+        <option value="{{department[0]}}">{{department[1]}}</option>
+        {%endfor%}</select
       ><br />
 
       <button type="submit">Sign Up</button>
