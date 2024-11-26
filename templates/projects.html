@@ -1,0 +1,33 @@
+<h1>Projects</h1>
+
+{% if current_user.role_id in [1, 2] %}
+<p>
+  <a href="{{ url_for('create_project') }}">
+    <button>Create New Project</button>
+  </a>
+</p>
+{% endif %}
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Department</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for project in projects %}
+    <tr>
+      <td>{{ project[0] }}</td>
+      <td>{{ project[1] }}</td>
+      <td>{{ project[2] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div>
+  <a href="{{ url_for('home') }}">
+    <button>Back to Home</button>
+  </a>
+</div>

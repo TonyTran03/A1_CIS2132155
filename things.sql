@@ -24,6 +24,11 @@ CREATE TABLE Employee (
     dno INT REFERENCES Department(dnumber) ON DELETE SET NULL, 
     user_id INT REFERENCES Users(id) ON DELETE SET NULL   
 );
+CREATE TABLE projects (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    department_id INT NOT NULL REFERENCES department(dnumber)
+);
 
 
 INSERT INTO Roles (id, role_name)

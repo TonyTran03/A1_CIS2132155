@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create New Project</title>
+  </head>
+  <body>
+    <h1>Create a New Project</h1>
+
+    <form method="POST" action="{{ url_for('create_project') }}">
+        <label for="project_name">Project Name:</label>
+        <input type="text" id="project_name" name="project_name" required /><br />
+      
+        <label for="department_id">Department:</label>
+        <select id="department_id" name="department_id" required>
+          {% for department in departments %}
+          <option
+            value="{{ department[0] }}"
+            {% if department[0] == current_department %} selected {% endif %}
+            {% if current_user.role_id == 2 %} disabled {% endif %}
+          >
+            {{ department[1] }}
+          </option>
+          {% endfor %}
+        </select>
+        <br />
+      
+        <button type="submit">Create Project</button>
+      </form>
+      
+
+    <p><a href="{{ url_for('view_projects') }}">Back to Projects</a></p>
+  </body>
+</html>

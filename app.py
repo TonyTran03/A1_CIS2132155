@@ -15,6 +15,7 @@ DATABASE_CONFIG = {
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
     "port": os.getenv("DB_PORT"),
+    "host" : "localhost",
 }
 
 # Initialize Flask-Login
@@ -160,11 +161,9 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('home'))
 
-
-
 @app.route('/users')
 @login_required
-@role_required(1, 2)  # Restrict to Super Admin and Department Admin roles
+@role_required(1, 2, 3)  # Allow Super Admin, Department Admin, and Normal Users
 def view_users():
     """View users with role-based access control."""
     conn = get_db_connection()
@@ -177,37 +176,38 @@ def view_users():
     if logged_in_user_role == 1:  # Super Admin
         query = """
             SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
-            FROM Users u
-            LEFT JOIN Roles r ON u.role_id = r.id
-            LEFT JOIN Department d ON u.department_id = d.dnumber
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN department d ON u.department_id = d.dnumber
         """
         cur.execute(query)
-    elif logged_in_user_role == 2:
-        # Fetch users from the same department
+
+    elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
         query = """
             SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
-            FROM Users u
-            LEFT JOIN Roles r ON u.role_id = r.id
-            LEFT JOIN Department d ON u.department_id = d.dnumber
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN department d ON u.department_id = d.dnumber
             WHERE u.department_id = %s
         """
         cur.execute(query, (logged_in_user_department,))
-    else:
-        return "Access Denied", 403 
 
+    else:
+        # Restrict access for any other role
+        cur.close()
+        conn.close()
+        return "Access Denied", 403
 
     # Fetch and close connection
     users = cur.fetchall()
-    cur.execute("SELECT id, role_name FROM roles")
-    roles = cur.fetchall()
-
-    # Fetch departments for dropdown
-    cur.execute("SELECT dnumber, dname FROM department")
-    departments = cur.fetchall()
+    print("Query Result for Users:", users)  # Debugging output
     cur.close()
     conn.close()
 
-    return render_template('users.html', users=users, roles=roles,departments=departments)
+    return render_template('users.html', users=users)
+
+
+
 
 @app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -261,14 +261,34 @@ def edit_user(user_id):
 
 # View All Departments
 @app.route('/departments')
+@login_required
+@role_required(1, 2, 3)  # Allow Super Admin, Department Admin, and Normal Users
 def view_departments():
-    """View all departments."""
+    """View departments with role-based filtering."""
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT dnumber, dname FROM department")
+
+    logged_in_user_role = current_user.role_id
+    logged_in_user_department = current_user.department_id
+
+    if logged_in_user_role == 1:
+        query = "SELECT dnumber, dname FROM department"
+        cur.execute(query)
+
+    elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
+        # Department Admin and Normal Users can only view their department
+        query = "SELECT dnumber, dname FROM department WHERE dnumber = %s"
+        cur.execute(query, (logged_in_user_department,))
+
+    else:
+        cur.close()
+        conn.close()
+        return "Access Denied", 403
+
     departments = cur.fetchall()
     cur.close()
     conn.close()
+
     return render_template("departments.html", departments=departments)
 
 
@@ -296,24 +316,28 @@ def create_department():
         return redirect(url_for('home'))
 
     return render_template('create_department.html')
-
 @app.route('/add_user', methods=['GET', 'POST'])
 @login_required
 @role_required(1, 2)  
 def add_user():
     """Add a new user."""
     if request.method == 'POST':
+        # Debugging: Print all form data
+        print(request.form)
+
         username = request.form['username']
         password = request.form['password']
-        role_id = int(request.form['role'])
+
+        try:
+            role_id = int(request.form['role_id'])  # Ensure role_id matches the form field
+        except KeyError:
+            flash("Role selection is required.", "danger")
+            return redirect(url_for('add_user'))
+
         department_id = request.form.get('department_id')
 
         # Hash the password
         password_hash = generate_password_hash(password)
-
-        if current_user.role_id == 2 and department_id != current_user.department_id:
-            flash("You can only assign users to your own department.", "danger")
-            return redirect(url_for('add_user'))
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -347,6 +371,7 @@ def add_user():
     conn.close()
 
     return render_template('add_user.html', roles=roles, departments=departments)
+
 
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
@@ -383,6 +408,104 @@ def delete_user(user_id):
         conn.close()
 
     return redirect(url_for('view_users'))
+
+
+@app.route('/create_project', methods=['GET', 'POST'])
+@login_required
+@role_required(1, 2)  # Allow only Super Admins and Department Admins
+def create_project():
+    """Create a new project."""
+    if request.method == 'POST':
+        project_name = request.form['project_name']
+        department_id = request.form['department_id']
+
+        # Restrict Department Admin to their department
+        if current_user.role_id == 2 and int(department_id) != current_user.department_id:
+            flash("You can only create projects for your own department.", "danger")
+            return redirect(url_for('create_project'))
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        try:
+            cur.execute(
+                """
+                INSERT INTO projects (name, department_id)
+                VALUES (%s, %s)
+                """,
+                (project_name, department_id),
+            )
+            conn.commit()
+            flash('Project created successfully!', 'success')
+        except psycopg2.Error as e:
+            conn.rollback()
+            flash(f'Error creating project: {str(e)}', 'danger')
+        finally:
+            cur.close()
+            conn.close()
+
+        return redirect(url_for('view_projects'))
+
+    # Fetch departments for the dropdown
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if current_user.role_id == 1:
+        # Super Admin can select from all departments
+        cur.execute("SELECT dnumber, dname FROM department")
+    else:
+        # Department Admin only sees their own department
+        cur.execute("SELECT dnumber, dname FROM department WHERE dnumber = %s", (current_user.department_id,))
+    departments = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template('create_project.html', departments=departments, current_department=current_user.department_id)
+
+
+@app.route('/projects')
+@login_required
+@role_required(1, 2, 3) 
+def view_projects():
+    """View projects with department-based filtering."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    logged_in_user_role = current_user.role_id
+    logged_in_user_department = current_user.department_id
+
+    if logged_in_user_role == 1:  # Super Admin
+        query = """
+            SELECT p.id, p.name, d.dname AS department_name
+            FROM Projects p
+            LEFT JOIN Department d ON p.department_id = d.dnumber
+        """
+        cur.execute(query)
+
+    elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
+        query = """
+            SELECT p.id, p.name, d.dname AS department_name
+            FROM Projects p
+            LEFT JOIN Department d ON p.department_id = d.dnumber
+            WHERE p.department_id = %s
+        """
+        cur.execute(query, (logged_in_user_department,))
+
+    else:
+        # Restrict access for any other role
+        cur.close()
+        conn.close()
+        return "Access Denied", 403
+
+    # Fetch and close connection
+    projects = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    print("Projects for User:", current_user.username, projects)  
+
+    return render_template('projects.html', projects=projects)
+
+
+
 
 
 @app.context_processor

@@ -9,17 +9,37 @@
     <h1>Welcome to the System</h1>
 
     {% if current_user.is_authenticated %}
+    <!-- Welcome message -->
     <p>Welcome, {{ current_user.username }}</p>
     <button onclick="window.location.href='/logout'">Logout</button>
 
+    <!-- Navigation for Super Admin -->
     {% if current_user.role_id == 1 %}
-    <!-- Super Admin only -->
     <button onclick="window.location.href='/create_department'">
       Create Department
     </button>
-    {% endif %} {% if current_user.role_id == 1 or current_user.role_id == 2 %}
+    <button onclick="window.location.href='/departments'">
+      View Departments
+    </button>
+    {% endif %}
+
+    <!-- Navigation for Super Admin and Department Admin -->
+    {% if current_user.role_id == 1 or current_user.role_id == 2 %}
     <button onclick="window.location.href='/users'">Manage Users</button>
+    <button onclick="window.location.href='/create_project'">
+      Create Project
+    </button>
+    <button onclick="window.location.href='/projects'">View Projects</button>
+    {% endif %}
+
+    <!-- Navigation for Normal User -->
+    {% if current_user.role_id == 3 %}
+    <button onclick="window.location.href='/projects'">View Projects</button>
+    <button onclick="window.location.href='/departments'">
+      View Your Department
+    </button>
     {% endif %} {% else %}
+    <!-- Buttons for unauthenticated users -->
     <button onclick="window.location.href='/login'">Login</button>
     <button onclick="window.location.href='/signup'">Sign Up</button>
     {% endif %}

@@ -8,15 +8,15 @@
         function toggleDepartmentDropdown() {
             const roleSelect = document.getElementById("role_id");
             const departmentSection = document.getElementById("department-section");
-            if (roleSelect.value == 1) { // 1 corresponds to Super Admin
+            if (roleSelect.value == 1) { 
                 departmentSection.style.display = "none"; // Hide the department dropdown
             } else {
-                departmentSection.style.display = "block"; // Show the department dropdown
+                departmentSection.style.display = "block"; 
             }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            toggleDepartmentDropdown(); // Initialize on page load
+            toggleDepartmentDropdown(); //  on page load
             document.getElementById("role_id").addEventListener("change", toggleDepartmentDropdown); // Update on role change
         });
     </script>
