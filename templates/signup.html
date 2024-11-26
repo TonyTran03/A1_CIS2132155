@@ -24,7 +24,8 @@
       <select id="department_id" name="department_id">
         {% for department in departments %}
         <option value="{{ department[0] }}">{{ department[1] }}</option>
-        {% endfor %}
+        {% endfor %}\
+        <option value="0">None</option>
       </select>
       <br />
 
