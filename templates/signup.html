@@ -4,6 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign Up</title>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const roleSelect = document.getElementById("role");
+        const departmentSelect = document.getElementById("department_id");
+        const form = document.querySelector("form");
+
+        // Function to update the department dropdown state
+        const updateDepartmentState = () => {
+          if (roleSelect.value === "Super Admin") {
+            departmentSelect.disabled = true;
+            departmentSelect.value = "0"; // Set to None automatically
+          } else {
+            departmentSelect.disabled = false;
+          }
+        };
+
+        form.addEventListener("submit", function (event) {
+          if (
+            roleSelect.value === "Department Admin" ||
+            (roleSelect.value === "Normal User" &&
+              departmentSelect.value === "0")
+          ) {
+            event.preventDefault();
+            alert("Department Admin must select a valid department!");
+          }
+        });
+
+        updateDepartmentState();
+
+        roleSelect.addEventListener("change", updateDepartmentState);
+      });
+    </script>
   </head>
   <body>
     <h1>Sign Up</h1>
@@ -20,11 +52,12 @@
         <option value="Department Admin">Department Admin</option>
         <option value="Normal User">Normal User</option></select
       ><br />
+
       <label for="department_id">Department:</label>
       <select id="department_id" name="department_id">
         {% for department in departments %}
         <option value="{{ department[0] }}">{{ department[1] }}</option>
-        {% endfor %}\
+        {% endfor %}
         <option value="0">None</option>
       </select>
       <br />

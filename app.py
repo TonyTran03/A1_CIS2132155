@@ -124,10 +124,15 @@ def signup():
 
         # Insert the new user into the database
         try:
+            # Insert the new user into the database
             cur.execute(
-                "INSERT INTO users (username, password_hash, role_id, department_id) VALUES (%s, %s, %s, %s)",
-                (username, password_hash, role_id[0], department_id if role != "Super Admin" else None)
+                """
+                INSERT INTO users (username, password_hash, role_id, department_id)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (username, password_hash, role_id[0], None if role == "Super Admin" else department_id)
             )
+
             conn.commit()
             flash('User created successfully!', 'success')
         except psycopg2.Error as e:

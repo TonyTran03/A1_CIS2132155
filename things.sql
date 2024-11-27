@@ -16,6 +16,7 @@ CREATE TABLE Users (
     role_id INT REFERENCES Roles(id) ON DELETE SET NULL,
     department_id INT REFERENCES Department(dnumber) ON DELETE SET NULL 
 );
+ALTER TABLE users ALTER COLUMN department_id DROP NOT NULL;
 
 CREATE TABLE Employee (
     id SERIAL PRIMARY KEY,              
@@ -24,6 +25,7 @@ CREATE TABLE Employee (
     dno INT REFERENCES Department(dnumber) ON DELETE SET NULL, 
     user_id INT REFERENCES Users(id) ON DELETE SET NULL   
 );
+
 CREATE TABLE projects (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
