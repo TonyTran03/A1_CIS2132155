@@ -484,46 +484,23 @@ def create_project():
 
 @app.route('/projects')
 @login_required
-@role_required(1, 2, 3) 
+@role_required(1, 2, 3)
 def view_projects():
-    """View projects with department-based filtering."""
     conn = get_db_connection()
     cur = conn.cursor()
-    logged_in_user_role = current_user.role_id
-    logged_in_user_department = current_user.department_id
 
-    if logged_in_user_role == 1:  # Super Admin
-        query = """
-            SELECT p.id, p.name, d.dname AS department_name
-            FROM Projects p
-            LEFT JOIN Department d ON p.department_id = d.dnumber
-        """
+    if current_user.role_id == 1:  # Super Admin
+        query = "SELECT * FROM DepartmentProjects"
         cur.execute(query)
+    else:  # Department Admin or Normal User
+        query = "SELECT * FROM DepartmentProjects WHERE department_id = %s"
+        cur.execute(query, (current_user.department_id,))
 
-    elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
-        query = """
-            SELECT p.id, p.name, d.dname AS department_name
-            FROM Projects p
-            LEFT JOIN Department d ON p.department_id = d.dnumber
-            WHERE p.department_id = %s
-        """
-        cur.execute(query, (logged_in_user_department,))
-
-    else:
-        # Restrict access for any other role
-        cur.close()
-        conn.close()
-        return "Access Denied", 403
-
-    # Fetch and close connection
     projects = cur.fetchall()
     cur.close()
     conn.close()
 
-    print("Projects for User:", current_user.username, projects)  
-
     return render_template('projects.html', projects=projects)
-
 
 
 
