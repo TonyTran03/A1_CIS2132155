@@ -22,7 +22,8 @@
 
         form.addEventListener("submit", function (event) {
           if (
-            roleSelect.value === "Department Admin" ||
+            (roleSelect.value === "Department Admin" &&
+              departmentSelect.value === "0") ||
             (roleSelect.value === "Normal User" &&
               departmentSelect.value === "0")
           ) {
