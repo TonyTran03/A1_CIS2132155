@@ -414,7 +414,6 @@ def delete_user(user_id):
 
     return redirect(url_for('view_users'))
 
-
 @app.route('/create_project', methods=['GET', 'POST'])
 @login_required
 @role_required(1, 2)  # Allow only Super Admins and Department Admins
@@ -424,8 +423,15 @@ def create_project():
         project_name = request.form['project_name']
         department_id = request.form['department_id']
 
+        # Ensure type consistency
+        try:
+            department_id = int(department_id)
+        except ValueError:
+            flash("Invalid department selection.", "danger")
+            return redirect(url_for('create_project'))
+
         # Restrict Department Admin to their department
-        if current_user.role_id == 2 and int(department_id) != current_user.department_id:
+        if current_user.role_id == 2 and department_id != int(current_user.department_id):
             flash("You can only create projects for your own department.", "danger")
             return redirect(url_for('create_project'))
 
@@ -433,6 +439,7 @@ def create_project():
         cur = conn.cursor()
 
         try:
+            print(f"Inserting project: {project_name}, department_id: {department_id}")
             cur.execute(
                 """
                 INSERT INTO projects (name, department_id)
@@ -444,6 +451,7 @@ def create_project():
             flash('Project created successfully!', 'success')
         except psycopg2.Error as e:
             conn.rollback()
+            print(f"Database error: {e.pgcode}, {e.pgerror}")
             flash(f'Error creating project: {str(e)}', 'danger')
         finally:
             cur.close()
@@ -454,15 +462,22 @@ def create_project():
     # Fetch departments for the dropdown
     conn = get_db_connection()
     cur = conn.cursor()
-    if current_user.role_id == 1:
-        # Super Admin can select from all departments
-        cur.execute("SELECT dnumber, dname FROM department")
-    else:
-        # Department Admin only sees their own department
-        cur.execute("SELECT dnumber, dname FROM department WHERE dnumber = %s", (current_user.department_id,))
-    departments = cur.fetchall()
-    cur.close()
-    conn.close()
+    try:
+        if current_user.role_id == 1:
+            # Super Admin can select from all departments
+            cur.execute("SELECT dnumber, dname FROM department")
+        else:
+            # Department Admin only sees their own department
+            cur.execute("SELECT dnumber, dname FROM department WHERE dnumber = %s", (current_user.department_id,))
+        departments = cur.fetchall()
+        print("Departments fetched for dropdown:", departments)
+    except psycopg2.Error as e:
+        print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
+        departments = []
+        flash("Unable to fetch departments.", "danger")
+    finally:
+        cur.close()
+        conn.close()
 
     return render_template('create_project.html', departments=departments, current_department=current_user.department_id)
 

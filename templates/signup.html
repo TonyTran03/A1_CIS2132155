@@ -13,8 +13,9 @@
         // Function to update the department dropdown state
         const updateDepartmentState = () => {
           if (roleSelect.value === "Super Admin") {
-            departmentSelect.disabled = true;
-            departmentSelect.value = "0"; // Set to None automatically
+            departmentSelect.setAttribute("readonly", true);
+
+            departmentSelect.value = "0";
           } else {
             departmentSelect.disabled = false;
           }

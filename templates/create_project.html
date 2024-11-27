@@ -18,12 +18,12 @@
           <option
             value="{{ department[0] }}"
             {% if department[0] == current_department %} selected {% endif %}
-            {% if current_user.role_id == 2 %} disabled {% endif %}
           >
             {{ department[1] }}
           </option>
           {% endfor %}
         </select>
+        
         <br />
       
         <button type="submit">Create Project</button>
