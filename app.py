@@ -493,8 +493,8 @@ def view_projects():
         query = "SELECT * FROM DepartmentProjects"
         cur.execute(query)
     else:  # Department Admin or Normal User
-        query = "SELECT * FROM DepartmentProjects WHERE department_id = %s"
-        cur.execute(query, (current_user.department_id,))
+        query = "SELECT * FROM DepartmentProjects WHERE department_id = %s" # get department id to further filter table
+        cur.execute(query, (current_user.department_id,)) 
 
     projects = cur.fetchall()
     cur.close()
