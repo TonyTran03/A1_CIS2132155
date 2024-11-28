@@ -6,17 +6,13 @@
     <button>Create New Project</button>
   </a>
 </p>
-{% endif %}
-
-{% if current_user.role_id == 1 %}
+{% endif %} {% if current_user.role_id == 1 %}
 <form method="POST" action="{{ url_for('view_projects') }}">
-  <Label for="department_id">Filter By Department:</Label>
+  <label for="department_id">Filter By Department:</label>
   <select id="department_id" name="department_id" required>
-      {% for department in departments %}
-      <option>
-        {{ department[0] }}
-      </option>
-      {% endfor %}
+    {% for department in departments %}
+    <option>{{ department[0] }}</option>
+    {% endfor %}
   </select>
   <button type="submit">Filter</button>
 </form>

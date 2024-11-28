@@ -6,20 +6,16 @@
 <a href="{{ url_for('home') }}" style="text-decoration: none">
   <button type="button">Back to Home</button>
 </a>
-
-{% if current_user.role_id == 1 %}
 <form method="POST" action="{{ url_for('view_users') }}">
-  <Label for="department_id">Filter By Department:</Label>
-  <select id="department_id" name="department_id" required>
-      {% for department in departments %}
-      <option value="{{ department[0] }}">
-        {{ department[1] }}
-      </option>
-      {% endfor %}
+  <label for="department_id">Filter By Department:</label>
+  <select id="department_id" name="department_id">
+    {% for department in departments %}
+    <option value="{{ department[0] }}">{{ department[1] }}</option>
+    {% endfor %}
   </select>
-  <button type="submit">Filter</button>
+  <button type="submit" name="action" value="filter">Filter</button>
+  <button type="submit" name="action" value="export">Export to Excel</button>
 </form>
-{% endif %}
 
 <table>
   <thead>
@@ -36,8 +32,8 @@
     <tr>
       <td>{{ user[0] }}</td>
       <td>{{ user[1] }}</td>
+      <td>{{ user[2] }}</td>
       <td>{{ user[3] }}</td>
-      <td>{{ user[5] }}</td>
       <td>
         <a href="{{ url_for('edit_user', user_id=user[0]) }}">Edit</a>
         <form
@@ -58,8 +54,6 @@
   </tbody>
 </table>
 
-<p>
-  {% if current_user.role_id in [1, 2] %}
-  <a href="{{ url_for('add_user') }}"><button>Create New User</button></a>
-  {% endif %}
-</p>
+{% if current_user.role_id in [1, 2] %}
+<a href="{{ url_for('add_user') }}"><button>Create New User</button></a>
+{% endif %}

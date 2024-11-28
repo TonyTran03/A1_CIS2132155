@@ -1,12 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import psycopg2
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
 from dotenv import load_dotenv  
-import os
-import pandas
+import os   
+import csv
+import pandas as pd
 # Initialize Flask App
 app = Flask(__name__)
 app.secret_key = 'your_secret_key' 
@@ -172,73 +173,61 @@ def logout():
 @login_required
 @role_required(1, 2, 3)  # Allow Super Admin, Department Admin, and Normal Users
 def view_users():
-    if request.method == 'POST':
-        view_users.filterDepartmentId = request.form['department_id']
-        return redirect(url_for('view_users'))
-
-    """View users with role-based access control."""
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Retrieve logged-in user's role and department
-    logged_in_user_role = current_user.role_id
-    logged_in_user_department = current_user.department_id
+    if request.method == 'POST':
+        action = request.form.get('action')
+        department_id = request.form.get('department_id')
+        
+        # Handle filtering
+        if action == 'filter':
+            view_users.filterDepartmentId = department_id
+            return redirect(url_for('view_users'))
 
-    if logged_in_user_role == 1:  # Super Admin
-        if view_users.filterDepartmentId is not None:
-            query = """
-                SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
-                FROM users u
-                LEFT JOIN roles r ON u.role_id = r.id
-                LEFT JOIN department d ON u.department_id = d.dnumber
-                WHERE u.department_id = %s
-            """
-            cur.execute(query, (view_users.filterDepartmentId,))
-            view_users.filterDepartmentId = None
-        else:
-            query = """
-                SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
-                FROM users u
-                LEFT JOIN roles r ON u.role_id = r.id
-                LEFT JOIN department d ON u.department_id = d.dnumber
-            """
-            cur.execute(query)
+        # Handle export
+        elif action == 'export':
+            # Fetch filtered data
+            if current_user.role_id == 1:  # Super Admin
+                if department_id:
+                    query = """
+                        SELECT u.id, u.username, r.role_name, d.dname
+                        FROM users u
+                        LEFT JOIN roles r ON u.role_id = r.id
+                        LEFT JOIN department d ON u.department_id = d.dnumber
+                        WHERE u.department_id = %s
+                    """
+                    cur.execute(query, (department_id,))
+                else:
+                    query = """
+                        SELECT u.id, u.username, r.role_name, d.dname
+                        FROM users u
+                        LEFT JOIN roles r ON u.role_id = r.id
+                        LEFT JOIN department d ON u.department_id = d.dnumber
+                    """
+                    cur.execute(query)
+            else:  # Department Admin or Normal User
+                query = """
+                    SELECT u.id, u.username, r.role_name, d.dname
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    LEFT JOIN department d ON u.department_id = d.dnumber
+                    WHERE u.department_id = %s
+                """
+                cur.execute(query, (current_user.department_id,))
 
-    elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
-        query = """
-            SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.id
-            LEFT JOIN department d ON u.department_id = d.dnumber
-            WHERE u.department_id = %s
-        """
-        cur.execute(query, (logged_in_user_department,))
+            users = cur.fetchall()
 
-    else:
-        # Restrict access for any other role
-        cur.close()
-        conn.close()
-        return "Access Denied", 403
+            # Generate Excel file
+            df = pd.DataFrame(users, columns=["ID", "Username", "Role Name", "Department Name"])
+            file_path = "filtered_users.xlsx"
+            df.to_excel(file_path, index=False)
 
-    # Fetch and close connection
-    users = cur.fetchall()
-    print("Query Result for Users:", users)  # Debugging output
+            cur.close()
+            conn.close()
 
-    # Fetch departments for the dropdowm
-    departments = []
-    if current_user.role_id == 1: # Super Admin
-        try:
-            # Super Admin can select from all departments
-            cur.execute("SELECT dnumber, dname FROM department")
-            departments = cur.fetchall()
-        except psycopg2.Error as e:
-            print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
-            flash("Unable to fetch departments.", "danger")
-
-    cur.close()
-    conn.close()
-
-    return render_template('users.html', users=users, departments=departments)
+            # Send file to the user
+            return send_file(file_path, as_attachment=True)
 view_users.filterDepartmentId = None
 
 
@@ -452,7 +441,7 @@ def create_project():
         project_name = request.form['project_name']
         department_id = request.form['department_id']
 
-        # Ensure type consistency
+        # Ensure type consistency, the code literally broke because it was returning a string. Byebye string.
         try:
             department_id = int(department_id)
         except ValueError:
