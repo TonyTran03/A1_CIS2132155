@@ -2,10 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import psycopg2
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 from functools import wraps
 from dotenv import load_dotenv  
-import os   
+import os
 import csv
 import pandas as pd
 # Initialize Flask App
@@ -21,7 +20,6 @@ DATABASE_CONFIG = {
     "host" : "localhost",
 }
 
-# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # unauthorized users go to the login page
@@ -127,7 +125,6 @@ def signup():
 
         # Insert the new user into the database
         try:
-            # Insert the new user into the database
             cur.execute(
                 """
                 INSERT INTO users (username, password_hash, role_id, department_id)
@@ -173,61 +170,73 @@ def logout():
 @login_required
 @role_required(1, 2, 3)  # Allow Super Admin, Department Admin, and Normal Users
 def view_users():
+    if request.method == 'POST':
+        view_users.filterDepartmentId = request.form['department_id']
+        return redirect(url_for('view_users'))
+
+    """View users with role-based access control."""
     conn = get_db_connection()
     cur = conn.cursor()
 
-    if request.method == 'POST':
-        action = request.form.get('action')
-        department_id = request.form.get('department_id')
-        
-        # Handle filtering
-        if action == 'filter':
-            view_users.filterDepartmentId = department_id
-            return redirect(url_for('view_users'))
+    # Retrieve logged-in user's role and department
+    logged_in_user_role = current_user.role_id
+    logged_in_user_department = current_user.department_id
 
-        # Handle export
-        elif action == 'export':
-            # Fetch filtered data
-            if current_user.role_id == 1:  # Super Admin
-                if department_id:
-                    query = """
-                        SELECT u.id, u.username, r.role_name, d.dname
-                        FROM users u
-                        LEFT JOIN roles r ON u.role_id = r.id
-                        LEFT JOIN department d ON u.department_id = d.dnumber
-                        WHERE u.department_id = %s
-                    """
-                    cur.execute(query, (department_id,))
-                else:
-                    query = """
-                        SELECT u.id, u.username, r.role_name, d.dname
-                        FROM users u
-                        LEFT JOIN roles r ON u.role_id = r.id
-                        LEFT JOIN department d ON u.department_id = d.dnumber
-                    """
-                    cur.execute(query)
-            else:  # Department Admin or Normal User
-                query = """
-                    SELECT u.id, u.username, r.role_name, d.dname
-                    FROM users u
-                    LEFT JOIN roles r ON u.role_id = r.id
-                    LEFT JOIN department d ON u.department_id = d.dnumber
-                    WHERE u.department_id = %s
-                """
-                cur.execute(query, (current_user.department_id,))
+    if logged_in_user_role == 1:  # Super Admin
+        if view_users.filterDepartmentId is not None:
+            query = """
+                SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN department d ON u.department_id = d.dnumber
+                WHERE u.department_id = %s
+            """
+            cur.execute(query, (view_users.filterDepartmentId,))
+            view_users.filterDepartmentId = None
+        else:
+            query = """
+                SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN department d ON u.department_id = d.dnumber
+            """
+            cur.execute(query)
 
-            users = cur.fetchall()
+    elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
+        query = """
+            SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN department d ON u.department_id = d.dnumber
+            WHERE u.department_id = %s
+        """
+        cur.execute(query, (logged_in_user_department,))
 
-            # Generate Excel file
-            df = pd.DataFrame(users, columns=["ID", "Username", "Role Name", "Department Name"])
-            file_path = "filtered_users.xlsx"
-            df.to_excel(file_path, index=False)
+    else:
+        # Restrict access for any other role
+        cur.close()
+        conn.close()
+        return "Access Denied", 403
 
-            cur.close()
-            conn.close()
+    # Fetch and close connection
+    users = cur.fetchall()
+    print("Query Result for Users:", users)  # Debugging output
 
-            # Send file to the user
-            return send_file(file_path, as_attachment=True)
+    # Fetch departments for the dropdowm
+    departments = []
+    if current_user.role_id == 1: # Super Admin
+        try:
+            # Super Admin can select from all departments
+            cur.execute("SELECT dnumber, dname FROM department")
+            departments = cur.fetchall()
+        except psycopg2.Error as e:
+            print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
+            flash("Unable to fetch departments.", "danger")
+
+    cur.close()
+    conn.close()
+
+    return render_template('users.html', users=users, departments=departments)
 view_users.filterDepartmentId = None
 
 
@@ -490,7 +499,6 @@ def create_project():
         departments = cur.fetchall()
         print("Departments fetched for dropdown:", departments)
     except psycopg2.Error as e:
-        print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
         departments = []
         flash("Unable to fetch departments.", "danger")
     finally:
@@ -543,41 +551,10 @@ def view_projects():
     return render_template('projects.html', projects=projects, departments=departments)
 view_projects.filterDepartmentId = None
 
-
-@app.route('/upload_excel', methods=['GET', 'POST'])
-@login_required
-@role_required(1, 2)  # Allow only Super Admins and Department Admins
-def upload_excel():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            flash('No file part')
-            return redirect(url_for('upload_excel'))
-
-        file = request.form['file']
-        table_name = request.form['table_name']
-        
-        if file.filename == '':
-            flash('No selected file')
-            return redirect(url_for('upload_excel'))
-
-        if '.' not in filename or filename.rsplit('.',1)[1].lower() != 'xlsx':
-            flash('Invalid file selected')
-            return redirect(url_for('upload_excel'))
-
-        filename = secure_filename(file.filename)
-        data = pandas.read_excel(filename)
-        conn = get_db_connection()
-
-        data.to_sql(table_name, con=conn, if_exists='append', index=False)
-        conn.close()     
-
-        return redirect(url_for('upload_excel'))
-
-    return render_template('upload_excel.html')
-
 @app.context_processor
 def inject_user():
     return {'current_user': current_user}
+
 
 if __name__ == '__main__':
     app.run(debug=True)

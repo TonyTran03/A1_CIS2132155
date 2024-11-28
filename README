@@ -34,12 +34,3 @@ A Flask-based user management system with role-based access control, department-
   - `Werkzeug`
 
 ---
-
-## Setup
-
-### Step 1: Clone the Repository
-
-```bash
-git clone https://github.com/your-repo/flask-user-management.git
-cd flask-user-management
-```
