@@ -2,9 +2,11 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import psycopg2
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
 from dotenv import load_dotenv  
 import os
+import pandas
 # Initialize Flask App
 app = Flask(__name__)
 app.secret_key = 'your_secret_key' 
@@ -18,6 +20,7 @@ DATABASE_CONFIG = {
     "host" : "localhost",
 }
 
+# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # unauthorized users go to the login page
@@ -123,6 +126,7 @@ def signup():
 
         # Insert the new user into the database
         try:
+            # Insert the new user into the database
             cur.execute(
                 """
                 INSERT INTO users (username, password_hash, role_id, department_id)
@@ -497,6 +501,7 @@ def create_project():
         departments = cur.fetchall()
         print("Departments fetched for dropdown:", departments)
     except psycopg2.Error as e:
+        print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
         departments = []
         flash("Unable to fetch departments.", "danger")
     finally:
@@ -548,6 +553,38 @@ def view_projects():
 
     return render_template('projects.html', projects=projects, departments=departments)
 view_projects.filterDepartmentId = None
+
+
+@app.route('/upload_excel', methods=['GET', 'POST'])
+@login_required
+@role_required(1, 2)  # Allow only Super Admins and Department Admins
+def upload_excel():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(url_for('upload_excel'))
+
+        file = request.form['file']
+        table_name = request.form['table_name']
+        
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(url_for('upload_excel'))
+
+        if '.' not in filename or filename.rsplit('.',1)[1].lower() != 'xlsx':
+            flash('Invalid file selected')
+            return redirect(url_for('upload_excel'))
+
+        filename = secure_filename(file.filename)
+        data = pandas.read_excel(filename)
+        conn = get_db_connection()
+
+        data.to_sql(table_name, con=conn, if_exists='append', index=False)
+        conn.close()     
+
+        return redirect(url_for('upload_excel'))
+
+    return render_template('upload_excel.html')
 
 @app.context_processor
 def inject_user():
