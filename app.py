@@ -534,6 +534,7 @@ def view_projects():
 
     projects = cur.fetchall()
 
+    departments = []
     if current_user.role_id == 1: # Super Admin
         # Fetch departments for the dropdown
         try:
@@ -543,7 +544,6 @@ def view_projects():
             print("Departments fetched for dropdown:", departments)
         except psycopg2.Error as e:
             print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
-            departments = []
             flash("Unable to fetch departments.", "danger")
 
     cur.close()
