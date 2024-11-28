@@ -6,6 +6,21 @@
 <a href="{{ url_for('home') }}" style="text-decoration: none">
   <button type="button">Back to Home</button>
 </a>
+
+{% if current_user.role_id == 1 %}
+<form method="POST" action="{{ url_for('view_users') }}">
+  <Label for="department_id">Filter By Department:</Label>
+  <select id="department_id" name="department_id" required>
+      {% for department in departments %}
+      <option value="{{ department[0] }}">
+        {{ department[1] }}
+      </option>
+      {% endfor %}
+  </select>
+  <button type="submit">Filter</button>
+</form>
+{% endif %}
+
 <table>
   <thead>
     <tr>
