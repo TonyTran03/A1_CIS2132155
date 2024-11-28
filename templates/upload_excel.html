@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+</head>
+<body>
+    <h1>Upload Excel</h1>
+    <form method="POST" action="{{ url_for('upload_excel') }}">
+        <input type="file" id="file" name="file" required /><br />
+
+        <label for="table_name">Table:</label>
+        <select id="table_name" name="table_name" required>
+          <option value="projects">projects</option>
+          <option value="Employee">Employee</option>
+          <option value="Department">Department</option>
+        </select>
+
+        <br />
+        <p>
+            <button type="submit">Import Excel</button>
+        </p>
+    </form>
+    <div>
+        <a href="{{ url_for('home') }}">
+            <button>Back to Home</button>
+        </a>
+    </div>
+</body>
+</html>
