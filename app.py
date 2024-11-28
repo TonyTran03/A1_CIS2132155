@@ -18,7 +18,6 @@ DATABASE_CONFIG = {
     "host" : "localhost",
 }
 
-# Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # unauthorized users go to the login page
@@ -124,7 +123,6 @@ def signup():
 
         # Insert the new user into the database
         try:
-            # Insert the new user into the database
             cur.execute(
                 """
                 INSERT INTO users (username, password_hash, role_id, department_id)
@@ -205,7 +203,6 @@ def view_users():
 
     # Fetch and close connection
     users = cur.fetchall()
-    print("Query Result for Users:", users)  # Debugging output
     cur.close()
     conn.close()
 
@@ -472,7 +469,6 @@ def create_project():
         departments = cur.fetchall()
         print("Departments fetched for dropdown:", departments)
     except psycopg2.Error as e:
-        print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
         departments = []
         flash("Unable to fetch departments.", "danger")
     finally:

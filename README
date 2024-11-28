@@ -1,0 +1,45 @@
+# Flask User Management System
+
+A Flask-based user management system with role-based access control, department-specific functionality, and PostgreSQL integration.
+
+---
+
+## Features
+
+- User Authentication: Login and Logout functionality using Flask-Login.
+- User Management:
+  - Add, edit, delete, and view users.
+  - Role-based access control with three roles:
+    - **Super Admin**: Full control over all users and departments.
+    - **Department Admin**: Manage users within their department.
+    - **Normal User**: View access to department data.
+- Department Management: Create and view departments.
+- Project Management:
+  - Create and view projects.
+  - Projects are linked to specific departments.
+- Password Security: Passwords are hashed using `werkzeug.security`.
+- Database Connection: PostgreSQL integration with secure credentials loading via `.env`.
+
+---
+
+## Requirements
+
+- Python 3.7+
+- PostgreSQL
+- Required Python packages:
+  - `Flask`
+  - `Flask-Login`
+  - `psycopg2`
+  - `python-dotenv`
+  - `Werkzeug`
+
+---
+
+## Setup
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/your-repo/flask-user-management.git
+cd flask-user-management
+```

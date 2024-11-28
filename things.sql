@@ -42,4 +42,4 @@ VALUES
 CREATE VIEW DepartmentProjects AS
 SELECT p.*, d.dname
 FROM Projects p
-JOIN Department d ON p.department_id = d.dnumber
+JOIN Department d ON p.department_id = d.dnumber    
