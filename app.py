@@ -166,10 +166,14 @@ def logout():
     flash('You have been logged out.', 'success')
     return redirect(url_for('home'))
 
-@app.route('/users')
+@app.route('/users', methods=['GET', 'POST'])
 @login_required
 @role_required(1, 2, 3)  # Allow Super Admin, Department Admin, and Normal Users
 def view_users():
+    if request.method == 'POST':
+        view_users.filterDepartmentId = request.form['department_id']
+        return redirect(url_for('view_users'))
+
     """View users with role-based access control."""
     conn = get_db_connection()
     cur = conn.cursor()
@@ -179,13 +183,24 @@ def view_users():
     logged_in_user_department = current_user.department_id
 
     if logged_in_user_role == 1:  # Super Admin
-        query = """
-            SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.id
-            LEFT JOIN department d ON u.department_id = d.dnumber
-        """
-        cur.execute(query)
+        if view_users.filterDepartmentId is not None:
+            query = """
+                SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN department d ON u.department_id = d.dnumber
+                WHERE u.department_id = %s
+            """
+            cur.execute(query, (view_users.filterDepartmentId,))
+            view_users.filterDepartmentId = None
+        else:
+            query = """
+                SELECT u.id, u.username, u.role_id, r.role_name, u.department_id, d.dname AS department_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN department d ON u.department_id = d.dnumber
+            """
+            cur.execute(query)
 
     elif logged_in_user_role in [2, 3]:  # Department Admin or Normal User
         query = """
@@ -206,11 +221,23 @@ def view_users():
     # Fetch and close connection
     users = cur.fetchall()
     print("Query Result for Users:", users)  # Debugging output
+
+    # Fetch departments for the dropdowm
+    departments = []
+    if current_user.role_id == 1: # Super Admin
+        try:
+            # Super Admin can select from all departments
+            cur.execute("SELECT dnumber, dname FROM department")
+            departments = cur.fetchall()
+        except psycopg2.Error as e:
+            print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
+            flash("Unable to fetch departments.", "danger")
+
     cur.close()
     conn.close()
 
-    return render_template('users.html', users=users)
-
+    return render_template('users.html', users=users, departments=departments)
+view_users.filterDepartmentId = None
 
 
 
@@ -482,28 +509,48 @@ def create_project():
     return render_template('create_project.html', departments=departments, current_department=current_user.department_id)
 
 
-@app.route('/projects')
+@app.route('/projects', methods=['GET', 'POST'])
 @login_required
 @role_required(1, 2, 3)
 def view_projects():
+    if request.method == 'POST':
+        view_projects.filterDepartmentId = request.form['department_id']
+        return redirect(url_for('view_projects'))
+
     conn = get_db_connection()
     cur = conn.cursor()
 
     if current_user.role_id == 1:  # Super Admin
-        query = "SELECT * FROM DepartmentProjects"
-        cur.execute(query)
+        if view_projects.filterDepartmentId is not None:
+            query = "SELECT * FROM DepartmentProjects WHERE department_id = %s"
+            cur.execute(query, (view_projects.filterDepartmentId,))
+            view_projects.filterDepartmentId = None
+        else:
+            query = "SELECT * FROM DepartmentProjects"
+            cur.execute(query)
     else:  # Department Admin or Normal User
         query = "SELECT * FROM DepartmentProjects WHERE department_id = %s" # get department id to further filter table
         cur.execute(query, (current_user.department_id,)) 
 
     projects = cur.fetchall()
+
+    if current_user.role_id == 1: # Super Admin
+        # Fetch departments for the dropdown
+        try:
+            # Super Admin can select from all departments
+            cur.execute("SELECT dnumber FROM department")
+            departments = cur.fetchall()
+            print("Departments fetched for dropdown:", departments)
+        except psycopg2.Error as e:
+            print(f"Error fetching departments: {e.pgcode}, {e.pgerror}")
+            departments = []
+            flash("Unable to fetch departments.", "danger")
+
     cur.close()
     conn.close()
 
-    return render_template('projects.html', projects=projects)
-
-
-
+    return render_template('projects.html', projects=projects, departments=departments)
+view_projects.filterDepartmentId = None
 
 @app.context_processor
 def inject_user():
